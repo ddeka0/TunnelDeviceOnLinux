@@ -55,22 +55,6 @@ Machine C:
           ./a.out
           
           
-![alt text](https://github.com/ddeka0/msp/blob/master/images/Screenshot%20from%202019-03-11%2023-38-30.png)
-
-## Note regarding docker-compose file
-         python folder is for single container explanation with dockerfile
-         
-         uncomment the volume section in dev mode in dev mode : run npm install inside in the host
-         for example in this project
-         1. uncomment the volumes sectin
-         2. go to team1 and run npm install
-         3. go to team2 and run npm install
-         4. then to docker-compose up
-         
-         why we are doing this ? this will help is development mode: auto reload of source files in the host 
-         will be reflected inside the container
-
-
 ## Authors
 
 * **Debashish Deka** 
