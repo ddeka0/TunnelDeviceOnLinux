@@ -5,7 +5,7 @@ This is an example C++ project to demonstrate `tun interface`.
 ## Architecture
 ![alt text](https://github.com/ddeka0/tun-tap-explore/blob/ddeka0-patch-1/tun-tap%20(3).png)
 
-Machine `A` has a playload `Hellow from client`. It writes this payload to a `UDP` client socket. Destination of this UDP packet is `C`. Client does this continuously in a different thread.
+Machine `A` has a payload `Hellow from client`. It writes this payload to a `UDP` client socket. Destination of this UDP packet is `C`. Client does this continuously in a different thread.
 
 The client also creates a tun interface (`tun1`). This is done in the main thread. A routing rule is added in the machine `A` to send IP packet destined to `C` towards `tun1` interface. Because of this setup IP packets can not go out of machine A directly (although C is reachable from A, A and C are in the same network in my setup).
 
