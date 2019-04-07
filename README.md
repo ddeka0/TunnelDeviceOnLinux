@@ -7,9 +7,9 @@ This is an example C++ project to demonstrate `tun interface`.
 
 Machine `A` has a payload `Hellow from client`. It writes this payload to a `UDP` client socket. Destination of this UDP packet is `C`. Client does this continuously in a different thread.
 
-The client also creates a tun interface (`tun1`). This is done in the main thread. A routing rule is added in the machine `A` to send IP packet destined to `C` towards `tun1` interface. Because of this setup IP packets can not go out of machine A directly (although C is reachable from A, A and C are in the same network in my setup).
+The client also creates a tun interface (`tun1`). This is done in the main thread. A routing rule is added in the machine `A` to send IP packet destined to `C` towards `tun1` interface. Due to this setup, IP packets can not go out of machine A directly (although C is reachable from A, A and C are in the same network in my setup).
 
-The main thread in the client captures the packets from the `tun1` interface and write to a UDP socket again destined to machine `B`. 
+The main thread in the client captures (reads continuously) the packets from the `tun1` interface and write to a UDP socket again destined to machine `B`. 
 
 Kernel at machine `B` will reaceive a UDP packet with a payload which is again a IP packet. Kernel removes the outer IP header and we receive the payload in the application layer. This payload is an IP packet(with destination address `C`). We want to forward to machine `C`. But this can not be written to a normal socket destined to machine `C`, because it will add one more IP header. We dont want any more header. 
 
