@@ -11,7 +11,7 @@ The client also creates a tun interface (`tun1`). This is done in the main threa
 
 The main thread in the client captures (reads continuously) the packets from the `tun1` interface and write to a UDP socket again destined to machine `B`. 
 
-Kernel at machine `B` will reaceive a UDP packet with a payload which is again a IP packet. Kernel removes the outer IP header and we receive the payload in the application layer. This payload is an IP packet(with destination address `C`). We want to forward to machine `C`. But this can not be written to a normal socket destined to machine `C`, because it will add one more IP header. We dont want any more header. 
+Kernel at machine `B` will receive a UDP packet with a payload which is again a IP packet. Kernel removes the outer IP header and we receive the payload in the application layer. This payload is an IP packet(with destination address `C`). We want to forward to machine `C`. But this can not be written to a normal socket destined to machine `C`, because it will add one more IP header. We dont want any more header. 
 
 Therefore server running at machine B also creates one tun interface (`tun2`). It writes the payload in the `tun file descriptor`. 
 
