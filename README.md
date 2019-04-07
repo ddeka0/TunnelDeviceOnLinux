@@ -34,6 +34,7 @@ Routing table in machine B: (I have not added any more static routes)
 Three virtual machines, containers or physical machines are required. Assuming IPs are allocated already and they are in the same network.
 
 Machine A:
+          
           g++ client.cpp -pthread
           sudo ./a.out
           
