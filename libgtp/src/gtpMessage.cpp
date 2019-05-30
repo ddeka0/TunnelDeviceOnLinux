@@ -39,6 +39,12 @@ int encodeGtpMessage(uint8_t *buffer, uint32_t bufLen, gtpMessage *msgStruct, ui
     *encodedLen = len;
     return SUCCESS;
 }
+
+
+/*  1.buffer = input buffer
+*   2. msgStruct = empty gtp message
+*   3. bufLen = length to decode
+*/
 int decodeGtpMessage(uint8_t *buffer, gtpMessage *msgStruct, uint32_t bufLen)
 {
     unsigned int len = 0;

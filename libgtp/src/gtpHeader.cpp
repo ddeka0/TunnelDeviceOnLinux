@@ -122,8 +122,8 @@ int decodeGtpHeader(uint8_t *buffer, gtpHeader *msgStruct, uint32_t bufLen,
         std::cout<<"Incomplete buffer length for length"<<std::endl;
         return FAILURE;
     }
-    msgStruct->length = ntohs(msgStruct->length);
     memcpy(&msgStruct->length, buffer+len, sizeof(msgStruct->length));
+    msgStruct->length = ntohs(msgStruct->length);
     len += sizeof(msgStruct->length);
 
     if(len+sizeof(msgStruct->teid) > bufLen)
@@ -131,8 +131,8 @@ int decodeGtpHeader(uint8_t *buffer, gtpHeader *msgStruct, uint32_t bufLen,
         std::cout<<"Incomplete buffer length for teid"<<std::endl;
         return FAILURE;
     }
-    msgStruct->teid = ntohl(msgStruct->teid);
     memcpy(&msgStruct->teid, buffer+len, sizeof(msgStruct->teid));
+    msgStruct->teid = ntohl(msgStruct->teid);
     len += sizeof(msgStruct->teid);
 
     if(msgStruct->flags & S_MASK)
@@ -142,8 +142,8 @@ int decodeGtpHeader(uint8_t *buffer, gtpHeader *msgStruct, uint32_t bufLen,
             std::cout<<"Incomplete buffer length for seqNo"<<std::endl;
             return FAILURE;
         }
-        msgStruct->seqNo = ntohs(msgStruct->seqNo);
         memcpy(&msgStruct->seqNo, buffer+len, sizeof(msgStruct->seqNo));
+        msgStruct->seqNo = ntohs(msgStruct->seqNo);
         len += sizeof(msgStruct->seqNo);        
     }
 
