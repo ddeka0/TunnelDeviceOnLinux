@@ -23,3 +23,7 @@ set(BASIC_LIBRARIES "-lpthread")
 add_executable(${PROJECT_NAME} client.cpp)
 set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -g -fsanitize=address")
 target_link_libraries(${PROJECT_NAME} ${BASIC_LIBRARIES} libGTP)
+
+
+add_executable("upf" upf.cpp)
+target_link_libraries("upf" ${BASIC_LIBRARIES} libGTP)

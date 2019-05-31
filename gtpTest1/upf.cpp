@@ -19,7 +19,7 @@
 
 using namespace std;
 #define PORT            2152    // both DN and UPF listens at the same port
-#define MAXLINE         3000
+#define MAXLINE         1024
 #define MIDDLE_SERVER_IP   "10.129.131.157"
 //the following are UBUNTU/LINUX, and MacOS ONLY terminal color codes.
 #define RESET   "\033[0m"

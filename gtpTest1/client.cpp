@@ -31,7 +31,7 @@
 
 #include "gtpMessage.h"
 
-#define MAXLINE     3000
+#define MAXLINE     1024
 #define PORT1       8080
 #define PORT        2152
 #define FAILURE     -1
@@ -150,7 +150,10 @@ int main() {
         /*fill the header */
         gtpMsg.gtp_header.flags = 0b00110000;
         gtpMsg.gtp_header.msgType = 0xFF;
-        gtpMsg.gtp_header.length = len; // TODO change len later 
+        gtpMsg.gtp_header.length = len; // TODO change length later
+		/* 	header.length = optional_field.length + payloadLength
+			len only has payloadLength	
+		*/
         gtpMsg.gtp_header.teid = 101;
 
 
@@ -160,7 +163,7 @@ int main() {
         if(encodeGtpMessage(buffer,MAXLINE,&gtpMsg,&encodedLen) == FAILURE)
         {
             cout <<"encodeGtpMessage failed"<<endl;
-            return 0;
+            return FAILURE;
         }
 
 
