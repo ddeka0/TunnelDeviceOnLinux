@@ -150,7 +150,7 @@ int main() {
         /*fill the header */
         gtpMsg.gtp_header.flags = 0b00110000;
         gtpMsg.gtp_header.msgType = 0xFF;
-        gtpMsg.gtp_header.length = len;
+        gtpMsg.gtp_header.length = len; // TODO change len later 
         gtpMsg.gtp_header.teid = 101;
 
 
