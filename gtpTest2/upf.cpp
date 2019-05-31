@@ -110,20 +110,10 @@ void thread_func(int tunfd,int sockfd) {
 	uint32_t encapLength;
 	long long int cnt = 0;
 
-	//[start]
-	struct sockaddr_in     addr;
-	memset(&addr, 0, sizeof(addr));
-	addr.sin_family = AF_INET;
-	addr.sin_port = /*ranaddr->sin_port; */ htons(2152);
-	addr.sin_addr.s_addr = /*ranaddr->sin_addr.s_addr;*/ inet_addr(RAN_IP);    
-	cout<<inet_ntoa(ranaddr.sin_addr)<<" "<<ranaddr.sin_port;
-	//[end]
-
-
 	while(1) {
 		/* Receiving data from server via tun device */
 		int len = receive_data(tunfd,innerPacket,MAXLINE);
-		cout << BOLDGREEN << cnt <<" UPF :: Number of downlink bytes captured by UPF (using tun3) = " << len << RESET <<endl;
+		cout << BOLDGREEN <<" UPF: "<<cnt<<" :: Number of downlink bytes captured by UPF (using tun3) = " << len << RESET <<endl;
 		
 		/* 
 		*  Adding GTP header over inner packet received from server
@@ -196,14 +186,12 @@ int main() {
 			(socklen_t*)&len); 
 		buffer[n] = '\0'; 
 
-		cout<<"[[DIP "<<inet_ntoa(cliaddr.sin_addr)<<" "<<cliaddr.sin_port<<"]]\n";
 		
 		if(!ran_address) {
 			memset(&ranaddr, 0, sizeof(ranaddr)); 
 			ranaddr.sin_family = AF_INET;
 			ranaddr.sin_port = cliaddr.sin_port;
 			ranaddr.sin_addr.s_addr = inet_addr(inet_ntoa(cliaddr.sin_addr));
-			cout<<"[[DIP "<<inet_ntoa(cliaddr.sin_addr)<<" "<<cliaddr.sin_port<<"]]\n";
 			std:: thread t(thread_func,tunfd2,sockfd);
 			t.detach();
 
