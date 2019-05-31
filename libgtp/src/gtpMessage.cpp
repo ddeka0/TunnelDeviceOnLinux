@@ -2,8 +2,7 @@
 #include "gtpMessage.h"
 #define SUCCESS 0
 #define FAILURE (-1)
-#define GTP_HDR_MANDATORY_FIELD_LENGTH 8 // GTP header mandatory fields are 8 B
-
+#define GTP_HDR_MANDATORY_FIELD_LENGTH 8
 int encodeGtpMessage(uint8_t *buffer, uint32_t bufLen, gtpMessage *msgStruct, uint32_t *encodedLen)
 {
     unsigned int len = 0;

@@ -31,8 +31,9 @@ sudo sysctl -w net.ipv4.ip_forward=1
 using namespace std;
 
 #define PORT     		8080		// both DN and UPF listens at the same port
+#define PORT_UPF     	2152
 #define MAXLINE 		1024
-#define SINK_SERVER_IP		"10.129.2.253"
+#define SINK_SERVER_IP		"10.129.131.180"
 #define MIDDLE_SERVER_IP	"10.129.131.206"
 #define LOCAL_CLIENT_IP		"172.112.100.2"		// this is virtual interface
 
@@ -95,6 +96,12 @@ int send_data(int tunfd, char *packet, int len) {
     }
     return wlen;
 }
+void printArray(char * buf, int bufsize) {
+	for(int i=0; i<bufsize; i++)
+		printf("0x%02X ", buf[i]);
+
+	printf("\n");
+}
 
 void upf_rcv_function(int sockfd,int tunfd) {
 	char buf[MAXLINE];
@@ -119,9 +126,8 @@ void upf_rcv_function(int sockfd,int tunfd) {
 			continue; 
 		}
 		/*Process the GTP Header if required*/
-		
 		// write tp TUN device so that UE can read it from virtual interface
-		send_data(tunfd,(char *)(gtpMsg.payload),MAXLINE);
+		send_data(tunfd,(char *)(gtpMsg.payload),gtpMsg.payloadLength);
 		cout << BOLDMAGENTA <<"RAN : "
 			<<"Writing into tun2 device for [br0:2] virtual interface" 
 			<< RESET << endl;
@@ -135,6 +141,7 @@ void ue_rcv_function(int sockfd) {
 	struct sockaddr_in cliaddr;
 	long long int cnt = 0;
 	while(true) {
+		cout << "rcv data from DN";
 		int n = recvfrom(sockfd, (char *)buf, MAXLINE,
 				MSG_WAITALL, ( struct sockaddr *) &cliaddr,
 				(socklen_t*)&len);
@@ -219,10 +226,20 @@ int main() {
 		exit(EXIT_FAILURE);
 	}
 
-	memset(&servaddr, 0, sizeof(servaddr));
+	// BIND CLIENT TEMP FIX ... 
+	// bind the client (UE) to an virtual interface
+	struct sockaddr_in localaddr;
+	localaddr.sin_family = AF_INET;
+	localaddr.sin_addr.s_addr = inet_addr("10.129.131.157");
+	localaddr.sin_port = htons(2152);
+	bind(sockfd, (struct sockaddr *)&localaddr, sizeof(localaddr));
 
+
+
+
+	memset(&servaddr, 0, sizeof(servaddr));
 	servaddr.sin_family = AF_INET;
-	servaddr.sin_port = htons(PORT);
+	servaddr.sin_port = htons(PORT_UPF);
 	servaddr.sin_addr.s_addr = inet_addr(MIDDLE_SERVER_IP);
 
 	std::thread upf_rcv_thread(upf_rcv_function,sockfd,tunfd2);
@@ -258,7 +275,7 @@ int main() {
         }
 		// Encapsulation is done, Now send this packer over UDP to UPF
 
-		sendto(sockfd, buffer, len,
+		sendto(sockfd, buffer, encodedLen,
 			MSG_CONFIRM, (const struct sockaddr *) &servaddr,
 			sizeof(servaddr));
 		cout << BOLDYELLOW <<"RAN : "<<"Packet sent by RAN to UPF" 
