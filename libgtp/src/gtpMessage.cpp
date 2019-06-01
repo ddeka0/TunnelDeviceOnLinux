@@ -3,7 +3,8 @@
 #define SUCCESS 0
 #define FAILURE (-1)
 #define GTP_HDR_MANDATORY_FIELD_LENGTH 8
-int encodeGtpMessage(uint8_t *buffer, uint32_t bufLen, gtpMessage *msgStruct, uint32_t *encodedLen)
+int encodeGtpMessage(uint8_t *buffer, uint32_t bufLen, gtpMessage *msgStruct,
+        uint32_t *encodedLen)
 {
     unsigned int len = 0;
     uint32_t encLen = 0;
@@ -14,7 +15,7 @@ int encodeGtpMessage(uint8_t *buffer, uint32_t bufLen, gtpMessage *msgStruct, ui
         return FAILURE;
     }
     
-    if(len+sizeof(msgStruct->gtp_header) > bufLen)
+    if(len+sizeof(msgStruct->gtp_header) > bufLen)  // TODO correct this check
     {
         std::cout<<"Incomplete buffer length for GTP header"<<std::endl;
         return FAILURE;
@@ -37,6 +38,7 @@ int encodeGtpMessage(uint8_t *buffer, uint32_t bufLen, gtpMessage *msgStruct, ui
     len+=msgStruct->payloadLength;
 
     *encodedLen = len;
+    printf("encodeGtpMessage : encoded length = %d, SUCCESS\n", len);
     return SUCCESS;
 }
 

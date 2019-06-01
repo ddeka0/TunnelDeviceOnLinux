@@ -246,26 +246,38 @@ int main() {
 	upf_rcv_thread.detach();
 
 
-	long long int cnt = 0;
+	uint16_t cnt = 0;
 	
 	while(true) {
 		char ipPayload[MAXLINE];
 		/*read an UE pakcet from the tun device*/
-		int len = receive_data(tunfd,ipPayload,MAXLINE);
+		int payLoadLen = receive_data(tunfd,ipPayload,MAXLINE);
 		cout << BOLDYELLOW <<"RAN : "<<"Number of bytes captured (using tun1)= "
-			<< len << RESET <<endl;
+			<< payLoadLen << RESET <<endl;
 		
 	    // Encapsulate this UE packet inside a GTP header 
 		gtpMessage gtpMsg;
         /*copy the payload first */
-        gtpMsg.payloadLength = len/* strlen(ipPayload) */;
-        memcpy(&gtpMsg.payload,ipPayload,len/* strlen(ipPayload) */);
-        /*fill the header */
-        gtpMsg.gtp_header.flags = 0b00110000;
+        gtpMsg.payloadLength = payLoadLen/* strlen(ipPayload) */;
+        memcpy(&gtpMsg.payload,ipPayload,payLoadLen/* strlen(ipPayload) */);
+        //printArray((char *)gtpMsg.payload, payLoadLen);
+		
+		/*fill the header */
+        gtpMsg.gtp_header.flags = 0b00110010;
         gtpMsg.gtp_header.msgType = 0xFF;
-        gtpMsg.gtp_header.length = len; // TODO fix the len later
+        gtpMsg.gtp_header.length = payLoadLen; // TODO fix the len later
+		if(gtpMsg.gtp_header.flags & (GTP_S_MASK|GTP_PN_MASK|GTP_E_MASK))
+		{
+			// update length field
+		 	gtpMsg.gtp_header.length += GTP_HDR_OPTIONAL_FIELD_LENGTH;
+		}
         gtpMsg.gtp_header.teid = 101;	// TODO fix
 
+		// set optional fields
+		
+		
+		gtpMsg.gtp_header.seqNo = cnt;
+		
         uint8_t buffer[MAXLINE];
         uint32_t encodedLen = 0;
         memset(buffer,0,sizeof(buffer));

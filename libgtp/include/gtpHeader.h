@@ -2,13 +2,16 @@
 #include <bits/stdc++.h>
 #define VERSION_MASK 0xE0
 #define PT_MASK (1<<4)
-#define E_MASK (1<<2)
-#define S_MASK 0x02
-#define PN_MASK 0x01
+#define GTP_E_MASK (1<<2)
+#define GTP_S_MASK 0x02
+#define GTP_PN_MASK 0x01
 #define BUF_SIZE 3000
 #define GTP_SEQ_NUM_PRESENT (1<<0)
 #define GTP_NPDU_NUM_PRESENT (1<<1)
 #define GTP_NEXT_EXTN_HDR_PRESENT (1<<2)
+#define GTP_HDR_SEQ_NUM_LEN 2
+#define GTP_HDR_MANDATORY_FIELD_LENGTH 8
+#define GTP_HDR_OPTIONAL_FIELD_LENGTH 4
 
 
 
