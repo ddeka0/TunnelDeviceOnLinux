@@ -25,7 +25,7 @@ int configRoute(std::string intfName,std::string dstIp,int flag) {
     addr->sin_family = AF_INET;
     addr->sin_addr.s_addr = 0;
 
-    // set the host we are rejecting. 
+    // set the host we are configuring. 
     addr = (struct sockaddr_in*) &route.rt_dst;
     addr->sin_family = AF_INET;
     addr->sin_addr.s_addr = inet_addr(dstIp.c_str());

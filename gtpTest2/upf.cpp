@@ -112,10 +112,16 @@ void thread_func(int tunfd,int sockfd) {
 	long long int cnt = 0;
 
 	while(1) {
+
+		/* Route packet with destination <UE_IP> to tun device
+		* 		sudo route add -host 172.112.100.2 tun2
+		* As of now, using commandline, TODO: do it from code
+		*/
+
 		/* Receiving data from server via tun device */
 		int len = receive_data(tunfd,innerPacket,MAXLINE);
 		cout << BOLDGREEN <<" UPF: "<<cnt<<" :: Number of downlink bytes"
-				"captured by UPF (using tun3) = " << len << RESET <<endl;
+				"captured by UPF (using tun2) = " << len << RESET <<endl;
 		
 		/* 
 		*  Adding GTP header over inner packet received from server
@@ -145,9 +151,6 @@ int main() {
 	char tun_name2[IFNAMSIZ];
 	strcpy(tun_name, "tun2");
 	int tunfd = tun_alloc(tun_name, IFF_TUN | IFF_NO_PI);
-	
-	strcpy(tun_name2, "tun3");
-	int tunfd2 = tun_alloc(tun_name2, IFF_TUN | IFF_NO_PI);
 	
 	getchar();
 
@@ -196,7 +199,7 @@ int main() {
 			ranaddr.sin_family = AF_INET;
 			ranaddr.sin_port = cliaddr.sin_port;
 			ranaddr.sin_addr.s_addr = inet_addr(inet_ntoa(cliaddr.sin_addr));
-			std:: thread t(thread_func,tunfd2,sockfd);
+			std:: thread t(thread_func,tunfd,sockfd);
 			t.detach();
 
 			ran_address = true;
