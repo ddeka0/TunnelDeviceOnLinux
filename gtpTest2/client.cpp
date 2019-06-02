@@ -31,8 +31,9 @@ sudo sysctl -w net.ipv4.ip_forward=1
 using namespace std;
 
 #define PORT     		8080		// both DN and UPF listens at the same port
+#define PORT_UPF     	2152
 #define MAXLINE 		1024
-#define SINK_SERVER_IP		"10.129.2.253"
+#define SINK_SERVER_IP		"10.129.131.180"
 #define MIDDLE_SERVER_IP	"10.129.131.206"
 #define LOCAL_CLIENT_IP		"172.112.100.2"		// this is virtual interface
 
@@ -95,6 +96,12 @@ int send_data(int tunfd, char *packet, int len) {
     }
     return wlen;
 }
+void printArray(char * buf, int bufsize) {
+	for(int i=0; i<bufsize; i++)
+		printf("0x%02X ", buf[i]);
+
+	printf("\n");
+}
 
 void upf_rcv_function(int sockfd,int tunfd) {
 	char buf[MAXLINE];
@@ -119,9 +126,8 @@ void upf_rcv_function(int sockfd,int tunfd) {
 			continue; 
 		}
 		/*Process the GTP Header if required*/
-		
 		// write tp TUN device so that UE can read it from virtual interface
-		send_data(tunfd,(char *)(gtpMsg.payload),MAXLINE);
+		send_data(tunfd,(char *)(gtpMsg.payload),gtpMsg.payloadLength);
 		cout << BOLDMAGENTA <<"RAN : "
 			<<"Writing into tun2 device for [br0:2] virtual interface" 
 			<< RESET << endl;
@@ -135,6 +141,7 @@ void ue_rcv_function(int sockfd) {
 	struct sockaddr_in cliaddr;
 	long long int cnt = 0;
 	while(true) {
+		cout << "rcv data from DN";
 		int n = recvfrom(sockfd, (char *)buf, MAXLINE,
 				MSG_WAITALL, ( struct sockaddr *) &cliaddr,
 				(socklen_t*)&len);
@@ -219,36 +226,58 @@ int main() {
 		exit(EXIT_FAILURE);
 	}
 
-	memset(&servaddr, 0, sizeof(servaddr));
+	// BIND CLIENT TEMP FIX ... 
+	// bind the client (UE) to an virtual interface
+	struct sockaddr_in localaddr;
+	localaddr.sin_family = AF_INET;
+	localaddr.sin_addr.s_addr = inet_addr("10.129.131.157");
+	localaddr.sin_port = htons(2152);
+	bind(sockfd, (struct sockaddr *)&localaddr, sizeof(localaddr));
 
+
+
+
+	memset(&servaddr, 0, sizeof(servaddr));
 	servaddr.sin_family = AF_INET;
-	servaddr.sin_port = htons(PORT);
+	servaddr.sin_port = htons(PORT_UPF);
 	servaddr.sin_addr.s_addr = inet_addr(MIDDLE_SERVER_IP);
 
 	std::thread upf_rcv_thread(upf_rcv_function,sockfd,tunfd2);
 	upf_rcv_thread.detach();
 
 
-	long long int cnt = 0;
+	uint16_t cnt = 0;
 	
 	while(true) {
 		char ipPayload[MAXLINE];
 		/*read an UE pakcet from the tun device*/
-		int len = receive_data(tunfd,ipPayload,MAXLINE);
+		int payLoadLen = receive_data(tunfd,ipPayload,MAXLINE);
 		cout << BOLDYELLOW <<"RAN : "<<"Number of bytes captured (using tun1)= "
-			<< len << RESET <<endl;
+			<< payLoadLen << RESET <<endl;
 		
 	    // Encapsulate this UE packet inside a GTP header 
 		gtpMessage gtpMsg;
         /*copy the payload first */
-        gtpMsg.payloadLength = len/* strlen(ipPayload) */;
-        memcpy(&gtpMsg.payload,ipPayload,len/* strlen(ipPayload) */);
-        /*fill the header */
-        gtpMsg.gtp_header.flags = 0b00110000;
+        gtpMsg.payloadLength = payLoadLen/* strlen(ipPayload) */;
+        memcpy(&gtpMsg.payload,ipPayload,payLoadLen/* strlen(ipPayload) */);
+        //printArray((char *)gtpMsg.payload, payLoadLen);
+		
+		/*fill the header */
+        gtpMsg.gtp_header.flags = 0b00110010;
         gtpMsg.gtp_header.msgType = 0xFF;
-        gtpMsg.gtp_header.length = len; // TODO fix the len later
+        gtpMsg.gtp_header.length = payLoadLen; // TODO fix the len later
+		if(gtpMsg.gtp_header.flags & (GTP_S_MASK|GTP_PN_MASK|GTP_E_MASK))
+		{
+			// update length field
+		 	gtpMsg.gtp_header.length += GTP_HDR_OPTIONAL_FIELD_LENGTH;
+		}
         gtpMsg.gtp_header.teid = 101;	// TODO fix
 
+		// set optional fields
+		
+		
+		gtpMsg.gtp_header.seqNo = cnt;
+		
         uint8_t buffer[MAXLINE];
         uint32_t encodedLen = 0;
         memset(buffer,0,sizeof(buffer));
@@ -258,7 +287,7 @@ int main() {
         }
 		// Encapsulation is done, Now send this packer over UDP to UPF
 
-		sendto(sockfd, buffer, len,
+		sendto(sockfd, buffer, encodedLen,
 			MSG_CONFIRM, (const struct sockaddr *) &servaddr,
 			sizeof(servaddr));
 		cout << BOLDYELLOW <<"RAN : "<<"Packet sent by RAN to UPF" 

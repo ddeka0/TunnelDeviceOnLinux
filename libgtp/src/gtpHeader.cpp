@@ -58,6 +58,9 @@ int encodeGtpHeader(uint8_t *buffer, gtpHeader *msgStruct, uint32_t bufLen,
     * header length will increase by 4 Bytes.
     */
 
+    /*NOTE 4: of page 17 of 29060
+    *Following bytes will be present in the encoding if
+    *(GTP_S_MASK|GTP_PN_MASK|GTP_E_MASK) is true */
     if(msgStruct->flags & (GTP_S_MASK|GTP_PN_MASK|GTP_E_MASK))
     {
         if (msgStruct->flags & GTP_S_MASK) // seq num present
@@ -72,7 +75,6 @@ int encodeGtpHeader(uint8_t *buffer, gtpHeader *msgStruct, uint32_t bufLen,
         memcpy(buffer+len, &msgStruct->seqNo, sizeof(msgStruct->seqNo));
         len+=sizeof(msgStruct->seqNo);
         
-
         if (msgStruct->flags & GTP_PN_MASK) // npdu num present
         {
             if(len+ sizeof(msgStruct->npduNum) > bufLen)

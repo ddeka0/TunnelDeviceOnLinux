@@ -39,6 +39,7 @@ int encodeGtpMessage(uint8_t *buffer, uint32_t bufLen, gtpMessage *msgStruct,
     len+=msgStruct->payloadLength;
 
     *encodedLen = len;
+    printf("encodeGtpMessage : encoded length = %d, SUCCESS\n", len);
     return SUCCESS;
 }
 
