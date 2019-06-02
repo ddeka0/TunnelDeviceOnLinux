@@ -2,8 +2,8 @@
 #include "gtpMessage.h"
 #define SUCCESS 0
 #define FAILURE (-1)
-#define GTP_HDR_MANDATORY_FIELD_LENGTH 8
-int encodeGtpMessage(uint8_t *buffer, uint32_t bufLen, gtpMessage *msgStruct,
+
+int encodeGtpMessage(uint8_t *buffer, uint32_t bufLen, gtpMessage *msgStruct, 
         uint32_t *encodedLen)
 {
     unsigned int len = 0;
@@ -62,16 +62,18 @@ int decodeGtpMessage(uint8_t *buffer, gtpMessage *msgStruct, uint32_t bufLen)
         std::cout<<"Incomplete buffer length for GTP header"<<std::endl;
         return FAILURE;        
     }
-    if(decodeGtpHeader(buffer + len,&(msgStruct->gtp_header),bufLen - len,&consumedLen)
-            == FAILURE)
+    if(decodeGtpHeader(buffer + len,&(msgStruct->gtp_header),bufLen - len, 
+            &consumedLen) == FAILURE)
     {
         std::cout << "decodeGtpHeader failed" << std::endl;
         return FAILURE;        
     }
     len+=consumedLen;
 
-    uint32_t gtpHdrOptionalFieldLength = consumedLen - GTP_HDR_MANDATORY_FIELD_LENGTH;
-    uint32_t gtpPayloadLength = msgStruct->gtp_header.length - gtpHdrOptionalFieldLength;
+    uint32_t gtpHdrOptionalFieldLength = 
+            consumedLen - GTP_HDR_MANDATORY_FIELD_LENGTH;
+    uint32_t gtpPayloadLength = 
+            msgStruct->gtp_header.length - gtpHdrOptionalFieldLength;
     if(len + gtpPayloadLength > bufLen)
     {
         std::cout<<"Incomplete buffer length for payload"<<std::endl;

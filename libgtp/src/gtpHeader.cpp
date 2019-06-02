@@ -54,7 +54,12 @@ int encodeGtpHeader(uint8_t *buffer, gtpHeader *msgStruct, uint32_t bufLen,
     /* Encoding optional fields */
     /*NOTE 4: of page 17 of 29060
     *Following bytes will be present in the encoding if
-    *(GTP_S_MASK|GTP_PN_MASK|GTP_E_MASK) is true */
+    *(GTP_S_MASK|GTP_PN_MASK|GTP_E_MASK) is true 
+    * As per spec, even if only 1 optional field is present, we have to add
+    * all optioanl fields (remaining optional fields will be set to 0), and
+    * header length will increase by 4 Bytes.
+    */
+
     if(msgStruct->flags & (GTP_S_MASK|GTP_PN_MASK|GTP_E_MASK))
     {
         if (msgStruct->flags & GTP_S_MASK) // seq num present
