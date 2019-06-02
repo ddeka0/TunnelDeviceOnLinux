@@ -57,7 +57,8 @@ using namespace std;
 int decapsulateGtpMessage(char *,int, char *, uint32_t *);
 int encapsulateGtpMessage(char *,int, char *, uint32_t *); 
 
-struct sockaddr_in ranaddr; 
+struct sockaddr_in ranaddr;
+uint16_t globalSeqNum = 0;
 
 
 int tun_alloc(char *dev, int flags) {
@@ -113,13 +114,15 @@ void thread_func(int tunfd,int sockfd) {
 	while(1) {
 		/* Receiving data from server via tun device */
 		int len = receive_data(tunfd,innerPacket,MAXLINE);
-		cout << BOLDGREEN <<" UPF: "<<cnt<<" :: Number of downlink bytes captured by UPF (using tun3) = " << len << RESET <<endl;
+		cout << BOLDGREEN <<" UPF: "<<cnt<<" :: Number of downlink bytes"
+				"captured by UPF (using tun3) = " << len << RESET <<endl;
 		
 		/* 
 		*  Adding GTP header over inner packet received from server
 		*  and serializing(encoding) the packet
 		*/
-		if(encapsulateGtpMessage(innerPacket, len, buffer, &encapLength) == FAILURE)
+		if(encapsulateGtpMessage(innerPacket, len, buffer, 
+				&encapLength) == FAILURE)
 		{
 			cout<<"UPF: Packet encapsulation failed. Aborting!\n";
 			return;
@@ -129,7 +132,8 @@ void thread_func(int tunfd,int sockfd) {
 		sendto(sockfd, buffer, encapLength,
 				MSG_CONFIRM, (const struct sockaddr *) &ranaddr,
 				sizeof(ranaddr));
-		cout << BOLDGREEN << "UPF: Dowlink packet sent by UPF to RAN" << RESET << endl;
+		cout << BOLDGREEN << "UPF: Dowlink packet sent by UPF to RAN" 
+				<< RESET << endl;
 		cnt++;
 		memset(buffer,0,sizeof(buffer));
 	}
@@ -200,14 +204,17 @@ int main() {
 		
 		cout <<"UPF: Number of bytes read by UPF = "<< n << endl;
 		char innerPacket[MAXLINE];
-        if(decapsulateGtpMessage(buffer,n, innerPacket, &decapLength) == FAILURE)
+        if(decapsulateGtpMessage(buffer,n, innerPacket, 
+				&decapLength) == FAILURE)
 		{
-			cout<< "UPF: Error in decoding GTP message, cannot forward to tun device" << endl;
+			cout<< "UPF: Error in decoding GTP message, cannot forward to"
+					"tun device" << endl;
 			return 0;
 		}
         memset(buffer,0,sizeof(buffer));
 
-		cout << BOLDYELLOW <<"UPF: Writing to tun interface again towards DN network" << RESET << endl;
+		cout << BOLDYELLOW <<"UPF: Writing to tun interface again towards"
+				"DN network" << RESET << endl;
 		send_data(tunfd, innerPacket, decapLength);
 		memset(buffer,0,sizeof(buffer));
 	}    
@@ -215,7 +222,9 @@ int main() {
 	return 0;
 } 
 
-int decapsulateGtpMessage(char * buffer,int len, char *innerPacket, uint32_t *decapLength) {
+int decapsulateGtpMessage(char * buffer,int len, char *innerPacket, 
+		uint32_t *decapLength) 
+{
     gtpMessage gtpMsg;
     if(decodeGtpMessage((uint8_t*)buffer,&gtpMsg,len) == FAILURE) 
     {
@@ -223,31 +232,39 @@ int decapsulateGtpMessage(char * buffer,int len, char *innerPacket, uint32_t *de
 		return FAILURE;
     }
 	cout <<"UPF: decoded TEID = "<< gtpMsg.gtp_header.teid << endl;
+	cout<<"UPF: decoded seq num = "<< gtpMsg.gtp_header.seqNo<<endl;
+	globalSeqNum = gtpMsg.gtp_header.seqNo;
 	memcpy(innerPacket, gtpMsg.payload, gtpMsg.payloadLength);
-	cout << "UPF: Inner Packet = "<<innerPacket<<endl;
 	(*decapLength) = gtpMsg.payloadLength;
     return SUCCESS;
 }
 
-int encapsulateGtpMessage(char * innerPacket,int len, char *buffer, uint32_t *encapLength)
+int encapsulateGtpMessage(char * innerPacket,int len, char *buffer, 
+		uint32_t *encapLength)
 {
 	gtpMessage gtpMsg;
 	/*copy the payload first */
 	gtpMsg.payloadLength = len/* strlen(ipPayload) */;
 	memcpy(&gtpMsg.payload,innerPacket,len/* strlen(ipPayload) */);
 	/*fill the header */
-	gtpMsg.gtp_header.flags = 0b00110000;
+	gtpMsg.gtp_header.flags = 0b00110010;
 	gtpMsg.gtp_header.msgType = 0xFF;
-	gtpMsg.gtp_header.length = len; // TODO change length later
-	/* 	header.length = optional_field.length + payloadLength
-		len only has payloadLength	
-	*/
+	gtpMsg.gtp_header.length = len;
+	if(gtpMsg.gtp_header.flags & (GTP_S_MASK|GTP_PN_MASK|GTP_E_MASK))
+	{
+		gtpMsg.gtp_header.length += GTP_HDR_OPTIONAL_FIELD_LENGTH;
+	}
+	globalSeqNum = globalSeqNum + (uint16_t)1;
+	gtpMsg.gtp_header.seqNo = globalSeqNum;
 	gtpMsg.gtp_header.teid = 202; // TODO: dynamically add destination TEID
-
-
+		
+	// TODO: check if above length is correct
+	cout << "UPF: Header length = "<<gtpMsg.gtp_header.length<<endl;
+	
 	uint32_t encodedLen = 0;
 	memset(buffer,0,MAXLINE);
-	if(encodeGtpMessage((uint8_t *)buffer,MAXLINE,&gtpMsg,&encodedLen) == FAILURE)
+	if(encodeGtpMessage((uint8_t *)buffer, MAXLINE, &gtpMsg, 
+			&encodedLen) == FAILURE)
 	{
 		cout <<"UPF: encodeGtpMessage failed"<<endl;
 		return FAILURE;
