@@ -41,7 +41,7 @@ int addRoute()
    // that causes packets to be dropped silently. We would use that if Linux
    // had it. RTF_REJECT will cause the network interface to signal that the 
    // packets are being actively rejected.
-   route.rt_flags = RTF_UP | RTF_HOST;
+   route.rt_flags = RTF_UP | RTF_HOST;// | RTF_HOST;
    route.rt_metric = 0;
     char ifname[] = "enp60s0";
     route.rt_dev = ifname;
@@ -92,7 +92,7 @@ int delRoute()
    // that causes packets to be dropped silently. We would use that if Linux
    // had it. RTF_REJECT will cause the network interface to signal that the 
    // packets are being actively rejected.
-   route.rt_flags = RTF_UP | RTF_HOST;
+   route.rt_flags = RTF_UP | RTF_GATEWAY;// | RTF_HOST;
    route.rt_metric = 0;
     char ifname[] = "enp60s0";
     route.rt_dev = ifname;
