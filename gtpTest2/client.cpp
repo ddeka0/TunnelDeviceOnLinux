@@ -158,11 +158,15 @@ int main() {
    	char tun_name[IFNAMSIZ];
    	strcpy(tun_name, "tun1");
 	int tunfd = tun_alloc(tun_name, IFF_TUN | IFF_NO_PI);
-
-	char tun_name2[IFNAMSIZ];
-	strcpy(tun_name2, "tun2");
-	int tunfd2 = tun_alloc(tun_name2, IFF_TUN | IFF_NO_PI);
-
+	/*	NOTE: UE will write to a socket with a destination IP address = X
+	*	We have added a routing rule 
+	*	sudo route add -host X tun1, packet will come out of tun1
+	*	RAN reads from tun1 fd
+	*	
+	*	In the reverse path, We write to the tun1 fd and 
+	*	with the help of "sudo route add -host 172.112.100.2 enp0s31f6:2"
+	*	UE can read the packets from its socket
+	*/
 	getchar();
 
 	std::thread ue_thread([] {
@@ -242,7 +246,7 @@ int main() {
 	servaddr.sin_port = htons(PORT_UPF);
 	servaddr.sin_addr.s_addr = inet_addr(MIDDLE_SERVER_IP);
 
-	std::thread upf_rcv_thread(upf_rcv_function,sockfd,tunfd2);
+	std::thread upf_rcv_thread(upf_rcv_function,sockfd,tunfd);	// tunfd2
 	upf_rcv_thread.detach();
 
 
