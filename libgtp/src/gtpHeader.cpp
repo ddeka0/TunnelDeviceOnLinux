@@ -51,7 +51,13 @@ int encodeGtpHeader(uint8_t *buffer, gtpHeader *msgStruct, uint32_t bufLen,
     memcpy(buffer+len, &msgStruct->teid, sizeof(msgStruct->teid));
     len+=sizeof(msgStruct->teid);
 
-    /* Encoding optional fields */
+    /* 
+    * Encoding optional fields
+    * As per spec, even if only 1 optional field is present, we have to add
+    * all optioanl fields (remaining optional fields will be set to 0), and
+    * header length will increase by 4 Bytes.
+    */
+
     /*NOTE 4: of page 17 of 29060
     *Following bytes will be present in the encoding if
     *(GTP_S_MASK|GTP_PN_MASK|GTP_E_MASK) is true 

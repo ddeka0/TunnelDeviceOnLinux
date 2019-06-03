@@ -15,7 +15,8 @@ int encodeGtpMessage(uint8_t *buffer, uint32_t bufLen, gtpMessage *msgStruct,
         return FAILURE;
     }
     
-    if(len+sizeof(msgStruct->gtp_header) > bufLen)  // TODO correct this check
+    // TODO: sizeof header should be variable
+    if(len+sizeof(msgStruct->gtp_header) > bufLen) // TODO: correct condition
     {
         std::cout<<"Incomplete buffer length for GTP header"<<std::endl;
         return FAILURE;
