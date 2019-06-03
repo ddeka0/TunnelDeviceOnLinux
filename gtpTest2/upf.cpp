@@ -24,6 +24,12 @@ sudo route add -host 172.112.100.2 tun3
 #include <linux/if_tun.h>
 
 #include "gtpMessage.h"
+#include <tunDev.h>
+#include <intfUtils.h>
+#include <netinet/ip.h>
+#include <addRoute.h>
+#include <setupRules.h>
+
 
 using namespace std;
 
@@ -31,6 +37,7 @@ using namespace std;
 #define MAXLINE         1024
 #define UPF_SERVER_IP   "10.129.131.206"
 #define RAN_IP			"10.129.131.157"
+#define UE_IP 			"172.112.100.2"
 #define SUCCESS 0
 #define FAILURE (-1)
 
@@ -61,43 +68,6 @@ struct sockaddr_in ranaddr;
 uint16_t globalSeqNum = 0;
 
 
-int tun_alloc(char *dev, int flags) {
-	struct ifreq ifr;
-	int fd, err;
-	const char *clonedev = "/dev/net/tun";
-	if( (fd = open(clonedev, O_RDWR)) < 0 ) {
-		cout << "UPF: something wrong !" << endl;
-		return fd;
-	}
-	memset(&ifr, 0, sizeof(ifr));
-	ifr.ifr_flags = flags;
-	if (*dev) {
-		strncpy(ifr.ifr_name, dev, IFNAMSIZ);
-	}
-	if( (err = ioctl(fd, TUNSETIFF, (void *) &ifr)) < 0 ) {
-		perror("UPF: ioctl");
-		close(fd);
-		return err;
-	}
-	strcpy(dev, ifr.ifr_name);
-	return fd;
-}
-int receive_data(int tunfd, char *packet, int bufsize) {
-	int len;
-	len = read(tunfd, packet, bufsize);
-	if (len < 0) {
-		perror("UPF: read");
-	}
-	return len;
-}
-int send_data(int tunfd, char *packet, int len) {
-	int wlen;
-	wlen = write(tunfd, packet, len);
-	if (wlen < 0) {
-		perror("UPF: write");
-	}
-	return wlen;
-}
 void printArray(char * buf, int bufsize) {
 	for(int i=0; i<bufsize; i++)
 		printf("0x%02X ", buf[i]);
@@ -105,7 +75,7 @@ void printArray(char * buf, int bufsize) {
 	printf("\n");
 }
 
-void thread_func(int tunfd,int sockfd) {
+void thread_func(tundev tun,int sockfd) {
 	char innerPacket[MAXLINE];
 	char buffer[MAXLINE];
 	uint32_t encapLength;
@@ -119,9 +89,9 @@ void thread_func(int tunfd,int sockfd) {
 		*/
 
 		/* Receiving data from server via tun device */
-		int len = receive_data(tunfd,innerPacket,MAXLINE);
+		int len = tun.receiveData(innerPacket,MAXLINE);
 		cout << BOLDGREEN <<" UPF: "<<cnt<<" :: Number of downlink bytes"
-				"captured by UPF (using tun2) = " << len << RESET <<endl;
+				"captured by UPF (using tun dev) = " << len << RESET <<endl;
 		
 		/* 
 		*  Adding GTP header over inner packet received from server
@@ -147,13 +117,35 @@ void thread_func(int tunfd,int sockfd) {
 int main() {
 
 	int sockfd;
-	char tun_name[IFNAMSIZ];
-	char tun_name2[IFNAMSIZ];
-	strcpy(tun_name, "tun2");
-	int tunfd = tun_alloc(tun_name, IFF_TUN | IFF_NO_PI);
-	
-	getchar();
-
+	tundev tun1;
+	tun1.devName = "tunUPF0";
+	if(tun1.createDevice() < 0) {
+        printf("Error! Cannot create tun device. Abort\n");
+		return 0;
+    }
+	tun1.up();
+	if(tun1.isUp())
+	{
+		// setup route
+		if(configRoute(tun1.devName, UE_IP, ADD_ROUTE) == SUCCESS)
+		{
+			printf("Route added successfully\n");
+		}
+		else
+		{
+			printf("Failed to add route\n");
+		}
+		
+		// add forward and rp_filter rules
+		setIpForwardRules(FORWARD_ENABLE);
+		setRpFilterRules("all", RP_FILTER_DISABLE);
+		setRpFilterRules(tun1.devName, RP_FILTER_DISABLE);
+	}
+	else
+	{
+		printf("TUN device is not up. Abort!\n");
+		return 0;
+	}
 
 	// create an UDP server socket
 	// UPF will read packets from the RAN side
@@ -199,7 +191,7 @@ int main() {
 			ranaddr.sin_family = AF_INET;
 			ranaddr.sin_port = cliaddr.sin_port;
 			ranaddr.sin_addr.s_addr = inet_addr(inet_ntoa(cliaddr.sin_addr));
-			std:: thread t(thread_func,tunfd,sockfd);
+			std:: thread t(thread_func,tun1,sockfd);
 			t.detach();
 
 			ran_address = true;
@@ -218,7 +210,7 @@ int main() {
 
 		cout << BOLDYELLOW <<"UPF: Writing to tun interface again towards"
 				"DN network" << RESET << endl;
-		send_data(tunfd, innerPacket, decapLength);
+		tun1.sendData(innerPacket, decapLength);
 		memset(buffer,0,sizeof(buffer));
 	}    
 	 

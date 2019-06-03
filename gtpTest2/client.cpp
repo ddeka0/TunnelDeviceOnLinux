@@ -23,10 +23,14 @@ sudo sysctl -w net.ipv4.ip_forward=1
 #include <netinet/in.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
-#include <linux/if.h>
 #include <linux/if_tun.h>
 
 #include "gtpMessage.h"
+#include <tunDev.h>
+#include <intfUtils.h>
+#include <netinet/ip.h>
+#include <addRoute.h>
+#include <setupRules.h>
 
 using namespace std;
 
@@ -59,43 +63,6 @@ using namespace std;
 #define FAILURE 	-1
 #define SUCCESS		0
 
-int tun_alloc(char *dev, int flags) {
-	struct ifreq ifr;
-	int fd, err;
-	const char *clonedev = "/dev/net/tun";
-	if( (fd = open(clonedev, O_RDWR)) < 0 ) {
-		cout << "something wrong !" << endl;
-		return fd;
-	}
-	memset(&ifr, 0, sizeof(ifr));
-	ifr.ifr_flags = flags;
-	if (*dev) {
-		strncpy(ifr.ifr_name, dev, IFNAMSIZ);
-	}
-	if( (err = ioctl(fd, TUNSETIFF, (void *) &ifr)) < 0 ) {
-		perror("ioctl");
-		close(fd);
-		return err;
-	}
-	strcpy(dev, ifr.ifr_name);
-	return fd;
-}
-int receive_data(int tunfd, char *packet, int bufsize) {
-    int len;
-    len = read(tunfd, packet, bufsize);
-    if (len < 0) {
-        perror("read");
-    }
-    return len;
-}
-int send_data(int tunfd, char *packet, int len) {
-    int wlen;
-    wlen = write(tunfd, packet, len);
-    if (wlen < 0) {
-        perror("write");
-    }
-    return wlen;
-}
 void printArray(char * buf, int bufsize) {
 	for(int i=0; i<bufsize; i++)
 		printf("0x%02X ", buf[i]);
@@ -103,7 +70,7 @@ void printArray(char * buf, int bufsize) {
 	printf("\n");
 }
 
-void upf_rcv_function(int sockfd,int tunfd) {
+void upf_rcv_function(int sockfd,tundev tun) {
 	char buf[MAXLINE];
 	int len;
 	struct sockaddr_in	cliaddr;
@@ -127,9 +94,9 @@ void upf_rcv_function(int sockfd,int tunfd) {
 		}
 		/*Process the GTP Header if required*/
 		// write tp TUN device so that UE can read it from virtual interface
-		send_data(tunfd,(char *)(gtpMsg.payload),gtpMsg.payloadLength);
+		tun.sendData((char *)(gtpMsg.payload),gtpMsg.payloadLength);
 		cout << BOLDMAGENTA <<"RAN : "
-			<<"Writing into tun2 device for [br0:2] virtual interface" 
+			<<"Writing into tun device for virtual interface" 
 			<< RESET << endl;
 		memset(buf,0,sizeof(buf));
 	}
@@ -155,9 +122,8 @@ void ue_rcv_function(int sockfd) {
 
 int main() {
 
-   	char tun_name[IFNAMSIZ];
-   	strcpy(tun_name, "tun1");
-	int tunfd = tun_alloc(tun_name, IFF_TUN | IFF_NO_PI);
+   	tundev tun1;
+	tun1.devName = "tunRAN0";
 	/*	NOTE: UE will write to a socket with a destination IP address = X
 	*	We have added a routing rule 
 	*	sudo route add -host X tun1, packet will come out of tun1
@@ -167,13 +133,49 @@ int main() {
 	*	with the help of "sudo route add -host 172.112.100.2 enp0s31f6:2"
 	*	UE can read the packets from its socket
 	*/
-	getchar();
+	if(tun1.createDevice() < 0) {
+        printf("Error! Cannot create tun device. Abort\n");
+		return 0;
+    }
+	tun1.up();
+	if(tun1.isUp())
+	{
+		// setup route
+		if(configRoute(tun1.devName, SINK_SERVER_IP, ADD_ROUTE) == SUCCESS)
+		{
+			printf("Route for server added successfully\n");
+			if(configRoute("enp0s31f6:2", LOCAL_CLIENT_IP, ADD_ROUTE) 
+					== SUCCESS) // TODO: remove hardcoding
+			{
+				printf("Route for UE added successfully\n");
+			}
+			else
+			{
+				printf("Failed to add route\n");
+				return 0;
+			}
+			
+		}
+		else
+		{
+			printf("Failed to add route\n");
+			return 0;
+		}
+		
+		// add forward and rp_filter rules
+		setIpForwardRules(FORWARD_ENABLE);
+		setRpFilterRules("all", RP_FILTER_DISABLE);
+		setRpFilterRules(tun1.devName, RP_FILTER_DISABLE);
+	}
+	else
+	{
+		printf("TUN device is not up. Abort!\n");
+	}
 
 	std::thread ue_thread([] {
 
 		int sockfd;
-		char buffer[MAXLINE];
-		struct sockaddr_in     servaddr,cliaddr;
+		struct sockaddr_in     servaddr;
 		
 		if ( (sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ) {
 			perror("socket creation failed");
@@ -193,7 +195,6 @@ int main() {
 		servaddr.sin_port = htons(PORT);
 		servaddr.sin_addr.s_addr = inet_addr(SINK_SERVER_IP);
 
-		int n, len;
 		long long cnt = 0;
 		string hello = " Hello from client";
 		string msg = to_string(cnt) + hello;
@@ -222,8 +223,7 @@ int main() {
 
 	// create a client-socket to send captured IP packects 
 	int sockfd;
-	char buffer[MAXLINE];
-	struct sockaddr_in     servaddr,cliaddr;
+	struct sockaddr_in     servaddr;
 
 	if ( (sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ) {
 		perror("socket creation failed");
@@ -246,7 +246,7 @@ int main() {
 	servaddr.sin_port = htons(PORT_UPF);
 	servaddr.sin_addr.s_addr = inet_addr(MIDDLE_SERVER_IP);
 
-	std::thread upf_rcv_thread(upf_rcv_function,sockfd,tunfd);	// tunfd2
+	std::thread upf_rcv_thread(upf_rcv_function,sockfd,tun1);	// tunfd2
 	upf_rcv_thread.detach();
 
 
@@ -255,7 +255,7 @@ int main() {
 	while(true) {
 		char ipPayload[MAXLINE];
 		/*read an UE pakcet from the tun device*/
-		int payLoadLen = receive_data(tunfd,ipPayload,MAXLINE);
+		int payLoadLen = tun1.receiveData(ipPayload,MAXLINE);
 		cout << BOLDYELLOW <<"RAN : "<<"Number of bytes captured (using tun1)= "
 			<< payLoadLen << RESET <<endl;
 		

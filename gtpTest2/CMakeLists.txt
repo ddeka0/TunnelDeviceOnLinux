@@ -13,17 +13,20 @@ set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/bin)
 
 # add all necessary libs
 add_subdirectory(../libgtp bin_libgtp)
+add_subdirectory(../tunTest bin_tun_test)
 
 
 # add all include paths
 include_directories(${PROJECT_SOURCE_DIR})
 include_directories(../libgtp/include)
+include_directories(../tunTest/include)
 
 set(BASIC_LIBRARIES "-lpthread")
 add_executable(${PROJECT_NAME} client.cpp)
 set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -g -fsanitize=address")
 target_link_libraries(${PROJECT_NAME} ${BASIC_LIBRARIES} libGTP)
-
+target_link_libraries(${PROJECT_NAME} ${BASIC_LIBRARIES} libTUN)
 
 add_executable("upf" upf.cpp)
 target_link_libraries("upf" ${BASIC_LIBRARIES} libGTP)
+target_link_libraries("upf" ${BASIC_LIBRARIES} libTUN)

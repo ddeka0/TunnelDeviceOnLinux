@@ -1,26 +1,34 @@
-cmake_minimum_required(VERSION 3.5)
+#cmake_minimum_required(VERSION 3.5)
 
-project(tunTest)
-message(STATUS "Compiling Network Function : ${PROJECT_NAME}")
-set(CMAKE_CXX_STANDARD 11)
+#project(tunTest)
+#message(STATUS "Compiling Network Function : ${PROJECT_NAME}")
+#set(CMAKE_CXX_STANDARD 11)
 
-message(STATUS "Project Directory: ${PROJECT_SOURCE_DIR}")
+#message(STATUS "Project Directory: ${PROJECT_SOURCE_DIR}")
 
 # set a build diractory
-set(CMAKE_BINARY_DIR ${CMAKE_SOURCE_DIR}/build)
+#set(CMAKE_BINARY_DIR ${CMAKE_SOURCE_DIR}/build)
 #set a bin directory
-set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/bin)
+#set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/bin)
 
 # add all necessary libs
-add_subdirectory(../libgtp bin_libgtp)
+#add_subdirectory(../libgtp bin_libgtp)
 
 
 # add all include paths
-include_directories(${PROJECT_SOURCE_DIR})
-include_directories(../libgtp/include)
+#include_directories(${PROJECT_SOURCE_DIR})
+#include_directories(../libgtp/include)
 
-set(BASIC_LIBRARIES "-lpthread")
-add_executable(${PROJECT_NAME} main.cpp tunDev.cpp intfUtils.cpp)
+#set(BASIC_LIBRARIES "-lpthread")
+#add_executable(${PROJECT_NAME} main.cpp tunDev.cpp intfUtils.cpp)
 
-set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -g -fsanitize=address")
-target_link_libraries(${PROJECT_NAME} ${BASIC_LIBRARIES} libGTP)
+#set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -g -fsanitize=address")
+#target_link_libraries(${PROJECT_NAME} ${BASIC_LIBRARIES} libGTP)
+
+cmake_minimum_required(VERSION 3.5)
+
+include_directories(include/)
+
+file(GLOB TUN_SRC src/*.cpp)
+
+add_library(libTUN STATIC ${TUN_SRC})
