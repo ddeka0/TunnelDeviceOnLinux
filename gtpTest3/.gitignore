@@ -1,0 +1,19 @@
+.*
+*.o
+*.patch
+cscope.*
+TAGS
+tags
+
+# dont ignore gitignore
+!.gitignore
+
+build/
+bin_libgtp/
+bin_tun_test/
+
+Makefile
+CMakeFiles/
+
+CMakeCache.txt
+cmake_install.cmake

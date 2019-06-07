@@ -17,3 +17,13 @@ gtpTest1/CMakeFiles/
 
 gtpTest1/CMakeCache.txt
 gtpTest1/cmake_install.cmake
+
+gtpTest2/build/
+gtpTest2/bin_libgtp/
+gtpTest2/bin_tun_test/
+
+gtpTest3/build/
+gtpTest3/bin_libgtp/
+gtpTest3/bin_tun_test/
+
+

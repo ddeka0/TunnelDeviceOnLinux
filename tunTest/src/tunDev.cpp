@@ -9,12 +9,12 @@ int tundev::createDevice(int flags) {
         return fd;
     }
     memset(&ifr, 0, sizeof(ifr));
-    /* Flags:   IFF_TUN   - TUN device(no Ethernet headers) 
+    /* Flags:   IFF_TUN   - TUN device(no Ethernet headers)
     *           IFF_TAP   - TAP device
     *           IFF_NO_PI - Do not provide packet information
-    *           (https://github.com/kohler/click/pull/397)  
+    *           (https://github.com/kohler/click/pull/397)
     */
-    ifr.ifr_flags = flags;
+    ifr.ifr_flags = ifr.ifr_flags | flags;
     /*if devName was provided by user, copy it to the ifr struct */
     if (this->devName.length() != 0) {
         strncpy(ifr.ifr_name, tunNameBuf, IFNAMSIZ);
@@ -25,9 +25,48 @@ int tundev::createDevice(int flags) {
         close(fd);
         return err;
     }
+    if(this->ipAddr!="")
+    {
+        printf("IP assigned to TUN dev, binding egress traffic to TUN iface\n");
+        this->interfaceFd = socket(AF_INET, SOCK_DGRAM, 0);
+        if(interfaceFd<0)
+        {
+            printf("Error creating socket for TUN device");
+            close(this->interfaceFd);
+            return err;
+        }
+        ifr.ifr_addr.sa_family = AF_INET;
+        struct sockaddr_in *sin = (struct sockaddr_in*)&ifr.ifr_addr;
+        sin->sin_addr.s_addr = inet_addr(ipAddr.c_str());
+        /* Allocating IP to TUN device*/
+        if(ioctl(this->interfaceFd, SIOCSIFADDR, &ifr)<0)
+        {
+            perror("ioctl:ip_allocate");
+            close(this->interfaceFd);
+            return err;
+        }
+        if(ioctl(this->interfaceFd, SIOCGIFINDEX, &ifr)<0)
+        {
+            perror("ioctl:index");
+            close(this->interfaceFd);
+            return err;
+        }
+        if (setsockopt(this->interfaceFd, SOL_SOCKET, SO_BINDTODEVICE,
+                    (void *)&ifr, sizeof(ifr)) < 0) {
+            perror("ioctl:index");
+            close(this->interfaceFd);
+            return err;
+        }
+        bind(this->interfaceFd, (struct sockaddr *)&ifr.ifr_addr, sizeof(ifr.ifr_addr));
+    }
+    else
+    {
+        this->interfaceFd=-1;
+    }
+    
     /* overwrite the allocated name */
     devName = std::string(ifr.ifr_name);
-    return fd;       
+    return fd;
 }
 int tundev::receiveData(char *buf, int count) {
     int rlen;

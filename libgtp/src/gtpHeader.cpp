@@ -105,7 +105,7 @@ int encodeGtpHeader(uint8_t *buffer, gtpHeader *msgStruct, uint32_t bufLen,
     }
 
     *encodedLen = len;
-    printf("encodeGtpHeader : encoded length = %d, SUCCESS\n", len);
+    //printf("encodeGtpHeader : encoded length = %d, SUCCESS\n", len);
     return SUCCESS;
 }
 int decodeGtpHeader(uint8_t *buffer, gtpHeader *msgStruct, uint32_t bufLen, 

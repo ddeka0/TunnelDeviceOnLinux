@@ -5,7 +5,7 @@ int configRoute(std::string intfName,std::string dstIp,int flag) {
     // create the control socket.
     int fd = socket( PF_INET, SOCK_DGRAM, IPPROTO_IP );
     if(fd < 0) {
-        std::cout <<"socket creation failed"<< strerror(errno) << std::endl;
+        //std::cout <<"socket creation failed"<< strerror(errno) << std::endl;
         return -1;
     }
     struct rtentry route;
@@ -45,7 +45,7 @@ int configRoute(std::string intfName,std::string dstIp,int flag) {
     uint32_t mask = (flag == ADD_ROUTE) ? SIOCADDRT : SIOCDELRT;
     int ret = ioctl( fd, mask, &route );
     if (ret < 0) {
-        std::cout <<"ioctl error."<< strerror(errno) << std::endl;
+        //std::cout <<"ioctl error."<< strerror(errno) << std::endl;
         close(fd);
         return -1;
     }

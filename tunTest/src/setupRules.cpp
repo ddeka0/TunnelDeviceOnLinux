@@ -61,7 +61,8 @@ int setRpFilterRules(std::string iface, int nv)
     strncat(newVal, "\n", 1);
     if (write (fd, newVal, 2) < 0)
         perror("WRITE"); 
-    printf("[%s.rp_filter]: Overwritten new value = %d\n", iface, nv);
+    std::cout<<"["<<iface<<".rp_filter]: Overwritten new value = "
+            <<nv<<std::endl;
     close(fd);
     return SUCCESS;
 }

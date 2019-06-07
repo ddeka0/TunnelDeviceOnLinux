@@ -29,7 +29,7 @@ int encodeGtpMessage(uint8_t *buffer, uint32_t bufLen, gtpMessage *msgStruct,
         return FAILURE;
     }
     len+=encLen;
-    printf("len = %d, encLen = %d\n", len, encLen);
+    //printf("len = %d, encLen = %d\n", len, encLen);
     if(len+msgStruct->payloadLength > bufLen)
     {
         std::cout<<"Incomplete buffer length for GTP payload"<<std::endl;
@@ -39,7 +39,7 @@ int encodeGtpMessage(uint8_t *buffer, uint32_t bufLen, gtpMessage *msgStruct,
     len+=msgStruct->payloadLength;
 
     *encodedLen = len;
-    printf("encodeGtpMessage : encoded length = %d, SUCCESS\n", len);
+    //printf("encodeGtpMessage : encoded length = %d, SUCCESS\n", len);
     return SUCCESS;
 }
 
@@ -82,7 +82,7 @@ int decodeGtpMessage(uint8_t *buffer, gtpMessage *msgStruct, uint32_t bufLen)
     }
     memcpy(&msgStruct->payload, buffer+len, gtpPayloadLength);
     msgStruct->payloadLength = gtpPayloadLength;
-    std::cout << "GTP payload length = "<<gtpPayloadLength<<std::endl;
+    //std::cout << "GTP payload length = "<<gtpPayloadLength<<std::endl;
 
     return SUCCESS;
 }

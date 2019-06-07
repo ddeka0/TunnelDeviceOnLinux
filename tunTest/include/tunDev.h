@@ -6,7 +6,7 @@
 *   4. routeAdd()
 *   5. delRoute()
 *   6. isIntfUp()
-*   7. sysctl calls 
+*   7. sysctl calls // not here. check this
 */
 #include <bits/stdc++.h>
 #include <stdio.h>
@@ -27,11 +27,14 @@
 class tundev {
 public:
     int fd;
+    int interfaceFd;
     int err;
     std::string devName;
+    std::string ipAddr;
     struct ifreq ifr;
     tundev() {
         this->devName = std::string();
+        this->ipAddr = std::string();
     }
     /* createDevice() creates a tun device and sets fd
     * usage: 
