@@ -15,4 +15,6 @@
 #define FAILURE (-1)
 
 int setIpForwardRules(int nv);
+int getIpForwardRules();
 int setRpFilterRules(std::string iface, int nv);
+int getRpFilterRules(std::string iface);

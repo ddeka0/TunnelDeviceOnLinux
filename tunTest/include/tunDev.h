@@ -24,6 +24,9 @@
 
 #include "intfUtils.h"
 
+#define SUCCESS 0
+#define FAILURE (-1)
+
 class tundev {
 public:
     int fd;
@@ -50,6 +53,14 @@ public:
     * then use tun.fd
     */
     int createDevice(int flags = IFF_TUN | IFF_NO_PI);
+    /* 
+    * allocateIpToTunDevice() allocates a specified IP to TUN device
+    */
+    int allocateIpToTunDevice(std::string);
+    /* 
+    * bindEgressTrafficToTunDevice() bind outgoing traffic to TUN interface
+    */
+    int bindEgressTrafficToTunDevice();
     /* receiveData() attempts to read up to count bytes from file descriptor 
     * of this class (this->fd) into the buffer starting at buf
     */

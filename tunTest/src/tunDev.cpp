@@ -25,6 +25,14 @@ int tundev::createDevice(int flags) {
         close(fd);
         return err;
     }
+    /* overwrite the allocated name */
+    devName = std::string(ifr.ifr_name);
+    return fd;
+}
+
+int tundev::allocateIpToTunDevice(std::string ipAddr)
+{
+    this->ipAddr = ipAddr;
     if(this->ipAddr!="")
     {
         printf("IP assigned to TUN dev, binding egress traffic to TUN iface\n");
@@ -33,41 +41,57 @@ int tundev::createDevice(int flags) {
         {
             printf("Error creating socket for TUN device");
             close(this->interfaceFd);
-            return err;
+            return errno;
         }
         ifr.ifr_addr.sa_family = AF_INET;
         struct sockaddr_in *sin = (struct sockaddr_in*)&ifr.ifr_addr;
-        sin->sin_addr.s_addr = inet_addr(ipAddr.c_str());
+        sin->sin_addr.s_addr = inet_addr(this->ipAddr.c_str());
         /* Allocating IP to TUN device*/
         if(ioctl(this->interfaceFd, SIOCSIFADDR, &ifr)<0)
         {
             perror("ioctl:ip_allocate");
             close(this->interfaceFd);
-            return err;
+            return errno;
         }
-        if(ioctl(this->interfaceFd, SIOCGIFINDEX, &ifr)<0)
-        {
-            perror("ioctl:index");
-            close(this->interfaceFd);
-            return err;
-        }
-        if (setsockopt(this->interfaceFd, SOL_SOCKET, SO_BINDTODEVICE,
-                    (void *)&ifr, sizeof(ifr)) < 0) {
-            perror("ioctl:index");
-            close(this->interfaceFd);
-            return err;
-        }
-        bind(this->interfaceFd, (struct sockaddr *)&ifr.ifr_addr, sizeof(ifr.ifr_addr));
     }
     else
     {
         this->interfaceFd=-1;
     }
-    
-    /* overwrite the allocated name */
-    devName = std::string(ifr.ifr_name);
-    return fd;
+    return SUCCESS;
 }
+
+int tundev::bindEgressTrafficToTunDevice()
+{
+    if(this->interfaceFd != -1 && this->ipAddr != "")
+    {
+        /* Getting iindex of TUN iface */
+        if(ioctl(this->interfaceFd, SIOCGIFINDEX, &ifr)<0)
+        {
+            perror("ioctl:index");
+            close(this->interfaceFd);
+            return errno;
+        }
+        /* Binding egress traffic to TUN iface */
+        if (setsockopt(this->interfaceFd, SOL_SOCKET, SO_BINDTODEVICE,
+                    (void *)&ifr, sizeof(ifr)) < 0) {
+            perror("ioctl:index");
+            close(this->interfaceFd);
+            return errno;
+        }
+
+        /* NOT REQUIRED TO BIND (due to setsockopt??)
+        bind(this->interfaceFd, (struct sockaddr *)&ifr.ifr_addr, 
+                sizeof(ifr.ifr_addr)); */
+        
+    }
+    else
+    {
+        this->interfaceFd=-1;
+    }
+    return SUCCESS;    
+}
+
 int tundev::receiveData(char *buf, int count) {
     int rlen;
     rlen = read(this->fd, buf, count);

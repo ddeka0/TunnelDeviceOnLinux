@@ -138,13 +138,20 @@ int main() {
         printf("Error! Cannot create tun device. Abort\n");
 		return 0;
     }
-        tun1.up();
+	if(tun1.allocateIpToTunDevice(LOCAL_CLIENT_IP) < 0) {
+        printf("Error! Cannot allocate IP to tun device. Abort\n");
+		return 0;
+    }
+	if(tun1.bindEgressTrafficToTunDevice() < 0) {
+        printf("Error! Cannot bind egress traffic to tun device. Abort\n");
+		return 0;
+    }
+
+    tun1.up();
 	if(tun1.isUp())
 	{
             printf("TUN device create, is up, and IP allocated\n");
-            getchar();
-            /*getchar();
-		// setup route
+		/*// setup route
 		if(configRoute(tun1.devName, SINK_SERVER_IP, ADD_ROUTE) == SUCCESS)
 		{
 			printf("Route for server added successfully\n");
